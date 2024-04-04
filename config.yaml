@@ -1,0 +1,14 @@
+policy:
+  templatePath: "template/policy_template.rego.tpl"
+
+s3:
+  region: "us-east-1"
+  accessKeyId: "test"
+  secretAccessKey: "test"
+  endpoint: "http://localhost:4566" # Use LocalStack endpoint for local testing
+  bucketName: "abac-rego-policy"
+  policyObjectKey: "policies/ExampleApp_ExampleAPI_v1.rego"
+
+
+local:
+  endpoint: "http://localhost:4566"

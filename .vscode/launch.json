@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "open-policy-service",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/server.go",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
