@@ -64,7 +64,7 @@ func main() {
 	log.Printf("Working directory: %s", wd)
 
 	if err := loadAndPreparePolicy(context.Background()); err != nil {
-		sugar.Fatalw("Failed to load or prepare policy", "error", err)
+		sugar.Error("Failed to load or prepare policy", "error", err)
 	}
 	// Routes
 	http.HandleFunc("/evaluate", func(w http.ResponseWriter, r *http.Request) {
@@ -122,9 +122,9 @@ func generatePolicyHandler(w http.ResponseWriter, r *http.Request, sugar *zap.Su
 		http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	var policyData PolicyData
 
-	var data PolicyData
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&policyData); err != nil {
 		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
 		return
 	}
@@ -132,7 +132,7 @@ func generatePolicyHandler(w http.ResponseWriter, r *http.Request, sugar *zap.Su
 	// Fetch the policy template path from configuration
 	templatePath := viper.GetString("policy.templatePath")
 	bucketName := viper.GetString("s3.bucketName")
-	objectKey := fmt.Sprintf("policies/%s_%s_%s.rego", data.ApplicationName, data.ApiName, data.ApiVersion)
+	objectKey := fmt.Sprintf("policies/%s_%s_%s.rego", policyData.ApplicationName, policyData.ApiName, policyData.ApiVersion)
 
 	templateBytes, err := os.ReadFile(templatePath)
 	if err != nil {
@@ -141,19 +141,85 @@ func generatePolicyHandler(w http.ResponseWriter, r *http.Request, sugar *zap.Su
 		return
 	}
 
-	tmpl, err := template.New("policy").Parse(string(templateBytes))
+	// tmpl, err := template.New("policy").Parse(string(templateBytes))
+
+	allowedActionsJSON, err := jsonMarshal(policyData.AllowedActions)
+	fmt.Println("AllowedActionsJSON:", allowedActionsJSON) // Should output: ["read","write"]
+
 	if err != nil {
-		log.Printf("Failed to parse policy template: %v", err)
-		http.Error(w, "Failed to parse policy template", http.StatusInternalServerError)
-		return
+		log.Fatalf("Failed to marshal AllowedActions: %v", err)
+	}
+	allowedAttributesJSON, err := jsonMarshal(policyData.AllowedAttributes)
+	fmt.Println("AllowedAttributesJSON:", allowedAttributesJSON) // Should output: ["username","email"]
+	if err != nil {
+		log.Fatalf("Failed to marshal AllowedAttributes: %v", err)
 	}
 
-	var policy bytes.Buffer
-	if err := tmpl.Execute(&policy, data); err != nil { // Use `data` instead of `templateBytes`
-		log.Printf("Failed to execute template: %v", err)
-		http.Error(w, "Failed to execute template", http.StatusInternalServerError)
-		return
+	// Include the JSON strings in your TemplateData struct
+	// templateData := struct {
+	// 	PolicyData
+	// 	AllowedActionsJSON    string
+	// 	AllowedAttributesJSON string
+	// }{
+	// 	PolicyData:            policyData,
+	// 	AllowedActionsJSON:    allowedActionsJSON,
+	// 	AllowedAttributesJSON: allowedAttributesJSON,
+	// }
+
+	// // Execute the template with the struct that includes the JSON strings.
+	// var filledPolicy bytes.Buffer
+	// tmpl, err := template.New("policy").Funcs(template.FuncMap{"jsonMarshal": jsonMarshal}).Parse(string(templateBytes)) // Assuming you have loaded your template into policyTemplateString.
+	// if err != nil {
+	// 	log.Fatalf("Failed to parse policy template: %v", err)
+	// }
+
+	// if err := tmpl.Execute(&filledPolicy, templateData); err != nil {
+	// 	log.Fatalf("Failed to execute policy template with data: %v", err)
+	// }
+	// if err != nil {
+	// 	log.Printf("Failed to parse policy template: %v", err)
+	// 	http.Error(w, "Failed to parse policy template", http.StatusInternalServerError)
+	// 	return
+	// }
+
+	// allowedActionsJSON, err := jsonMarshal(policyData.AllowedActions)
+	// if err != nil {
+	// 	log.Fatalf("Failed to marshal AllowedActions: %v", err)
+	// }
+
+	// allowedAttributesJSON, err := jsonMarshal(policyData.AllowedAttributes)
+	// if err != nil {
+	// 	log.Fatalf("Failed to marshal AllowedAttributes: %v", err)
+	// }
+
+	templateData := struct {
+		PolicyData
+		AllowedActionsJSON    string
+		AllowedAttributesJSON string
+	}{
+		PolicyData:            policyData,
+		AllowedActionsJSON:    allowedActionsJSON,
+		AllowedAttributesJSON: allowedAttributesJSON,
 	}
+
+	var filledPolicy bytes.Buffer
+	tmpl, err := template.New("policy").Parse(string(templateBytes))
+	fmt.Println("Template content:", string(templateBytes))
+
+	if err != nil {
+		log.Fatalf("Failed to parse policy template: %v", err)
+	}
+
+	if err := tmpl.Execute(&filledPolicy, templateData); err != nil {
+		log.Fatalf("Failed to execute policy template with data: %v", err)
+	}
+	fmt.Println("Filled policy:", filledPolicy.String())
+	// var policy bytes.Buffer
+	// if err := tmpl.Execute(&policy, policyData); err != nil { // Use `data` instead of `templateBytes`
+	// 	log.Printf("Failed to execute template: %v", err)
+	// 	http.Error(w, "Failed to execute template", http.StatusInternalServerError)
+	// 	return
+	// }
 
 	// Initialize AWS S3 client and context remains the same
 
@@ -183,7 +249,7 @@ func generatePolicyHandler(w http.ResponseWriter, r *http.Request, sugar *zap.Su
 	_, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(objectKey),
-		Body:   bytes.NewReader(policy.Bytes()),
+		Body:   bytes.NewReader(filledPolicy.Bytes()),
 	})
 
 	if err != nil {
@@ -274,4 +340,15 @@ func fetchPolicyFromS3(ctx context.Context) (string, error) {
 	}
 
 	return string(policyBytes), nil
+}
+
+func jsonMarshal(v interface{}) (string, error) {
+	bytes, err := json.Marshal(v)
+	if err != nil {
+		return "", err // Return an empty string and the error if marshaling fails
+	}
+	txt := string(bytes)
+	escapeText := fmt.Sprintf("%q", txt)
+	fmt.Println("TST:", escapeText)
+	return escapeText, nil
 }

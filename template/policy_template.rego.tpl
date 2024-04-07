@@ -15,17 +15,18 @@ allow {
 
 # Validate if the requested action is allowed
 actions_allowed(action) {
-    allowed_actions := { "{{ range .AllowedActions }}"{{ . }}"{{ end }}" }
+    allowed_actions := json.unmarshal({{.AllowedActionsJSON}})
     action == allowed_actions[_]
 }
 
 # Validate if all requested attributes are allowed
 attributes_allowed(requested) {
-    count(requested) == count({attr | attr := requested[_]; attr_allowed(attr)})
+allowed_attrs := json.unmarshal({{.AllowedAttributesJSON}})
+count(requested) == count({attr | attr := requested[_]; attr_allowed(attr)})
 }
 
 # Helper to check individual attribute
 attr_allowed(attr) {
-    allowed_attrs := { "{{ range .AllowedAttributes }}"{{ . }}"{{ end }}" }
-    attr == allowed_attrs[_]
+allowed_attrs := json.unmarshal({{ .AllowedAttributesJSON }})
+attr == allowed_attrs[_]
 }
