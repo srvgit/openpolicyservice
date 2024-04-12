@@ -92,7 +92,7 @@ func evaluatePolicyHandler(w http.ResponseWriter, r *http.Request, logger *zap.S
 	}
 
 	ctx := context.Background()
-	results, err := regoQuery.Eval(ctx, rego.EvalInput(input))
+		results, err := regoQuery.Eval(ctx, rego.EvalInput(input))
 
 	if err != nil {
 		logger.Error("Failed to evaluate policy", zap.Error(err))
