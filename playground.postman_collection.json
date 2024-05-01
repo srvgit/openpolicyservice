@@ -1,0 +1,95 @@
+{
+	"info": {
+		"_postman_id": "60a9723f-8c9e-429d-8e4e-5f86cab43bcc",
+		"name": "playground",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "3084377",
+		"_collection_link": "https://winter-equinox-504781.postman.co/workspace/playground~31af315c-863e-4f69-a344-f0ebfff2c67e/collection/3084377-60a9723f-8c9e-429d-8e4e-5f86cab43bcc?action=share&source=collection_link&creator=3084377"
+	},
+	"item": [
+		{
+			"name": "localhost:8080/employees",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"user\": \"ravi\",\n    \"pw\":\"test\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/employees/",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"employees",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Generate-Policy",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"ApplicationName\": \"ExampleApp\",\n  \"Environment\": \"production\",\n  \"ClientID\": \"client123\",\n  \"ApiName\": \"ExampleAPI\",\n  \"ApiVersion\": \"v1\",\n  \"AllowedActions\": [\"read\", \"write\"],\n  \"AllowedAttributes\": [\"username\", \"email\"]\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/generate-policy",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"generate-policy"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Validate",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"ApplicationName\": \"ExampleApp\",\n  \"Environment\": \"production\",\n  \"ClientID\": \"client123\",\n  \"ApiName\": \"ExampleAPI\",\n  \"ApiVersion\": \"v1\",\n  \"action\": \"read\",\n  \"attributes\": [\"username\", \"email\"]\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/evaluate",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"evaluate"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
