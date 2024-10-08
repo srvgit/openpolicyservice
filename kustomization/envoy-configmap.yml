@@ -1,0 +1,8 @@
+# envoy-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envoy-config
+data:
+  envoy.yaml: |
+    # Contents of envoy.yaml as above

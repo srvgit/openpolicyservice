@@ -1,0 +1,8 @@
+# opa-dockerfile
+FROM openpolicyagent/opa:latest
+
+COPY policy.rego /policy/
+COPY data.json /policy/
+COPY opa-config.yaml /policy/
+
+CMD ["run", "-s", "--config-file=/policy/opa-config.yaml", "/policy/"]

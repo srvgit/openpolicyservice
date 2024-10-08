@@ -1,0 +1,20 @@
+# graphql-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: graphql-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: graphql
+  template:
+    metadata:
+      labels:
+        app: graphql
+    spec:
+      containers:
+      - name: graphql
+        image: your-graphql-image
+        ports:
+        - containerPort: 8080

@@ -1,0 +1,39 @@
+Start All Services
+Apply the Kubernetes Configurations:
+
+bash
+Copy code
+kubectl apply -k .  # Apply all configurations in the current directory
+Verify Pods and Services:
+
+bash
+Copy code
+kubectl get pods
+kubectl get services
+Ensure that all pods (graphql-service, opa, envoy) are running and services are exposed.
+
+7.2 Send Test Requests
+Port Forward Envoy Service:
+
+bash
+Copy code
+kubectl port-forward svc/envoy 8080:80
+Send a Request to the GraphQL API via Envoy:
+
+bash
+Copy code
+curl -X POST http://localhost:8080/graphql \
+  -H "Okra-Client-ID: testapp" \
+  -H "Content-Type: application/json" \
+  -d '{ "query": "{ field1 }" }'
+7.3 Verify Authorization Decisions
+Allowed Request: If the fields in the GraphQL query are allowed by the policy, you should receive a response from the GraphQL service.
+Denied Request: If the fields are not allowed, you should receive an authorization error from Envoy.
+Test Unauthorized Access:
+
+bash
+Copy code
+curl -X POST http://localhost:8080/graphql \
+  -H "Okra-Client-ID: testapp" \
+  -H "Content-Type: application/json" \
+  -d '{ "query": "{ unauthorizedField }" }'

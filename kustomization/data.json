@@ -1,0 +1,26 @@
+{
+    "policies": {
+      "testapp": {
+        "allow": true,
+        "apis": ["testapi1"],
+        "apiversion": 2,
+        "id": 473,
+        "scopes": ["scope1"],
+        "testapi1": {
+          "accesstype": "ALLOW",
+          "apiversion": 2,
+          "fieldpattern": "value",
+          "fields": ["field1", "field2.fieldchild", "field3.*"],
+          "id": 1
+        },
+        "testapi2": {
+          "accesstype": "ALLOW",
+          "apiversion": 2,
+          "fieldpattern": "value",
+          "fields": ["field1", "field2.fieldchild", "field3.*"],
+          "id": 2
+        }
+      }
+    }
+  }
+  

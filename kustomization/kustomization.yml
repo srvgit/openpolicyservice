@@ -1,0 +1,18 @@
+# kustomization.yaml
+resources:
+  - graphql-deployment.yaml
+  - graphql-service.yaml
+  - opa-deployment.yaml
+  - opa-service.yaml
+  - envoy-deployment.yaml
+  - envoy-service.yaml
+
+configMapGenerator:
+  - name: envoy-config
+    files:
+      - envoy.yaml
+  - name: opa-config
+    files:
+      - policy.rego
+      - data.json
+      - opa-config.yaml

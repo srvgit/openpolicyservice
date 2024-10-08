@@ -1,0 +1,12 @@
+# opa-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opa-config
+data:
+  policy.rego: |
+    # Contents of policy.rego as above
+  data.json: |
+    # Contents of data.json as above
+  opa-config.yaml: |
+    # Contents of opa-config.yaml as above

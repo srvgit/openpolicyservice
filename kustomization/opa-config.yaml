@@ -1,0 +1,7 @@
+services:
+  - name: policies
+    url: ""
+plugins:
+  envoy_ext_authz_grpc:
+    addr: :9191
+    query: "app.abac.mckinsey.allow"

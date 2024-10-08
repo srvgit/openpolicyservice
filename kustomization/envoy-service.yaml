@@ -1,0 +1,12 @@
+# envoy-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: envoy
+spec:
+  selector:
+    app: envoy
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080

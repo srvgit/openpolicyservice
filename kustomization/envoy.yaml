@@ -1,0 +1,127 @@
+static_resources:
+  listeners:
+  - name: listener_graphql
+    address:
+      socket_address:
+        address: 0.0.0.0
+        port_value: 8080  # Envoy listens on port 8080
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          stat_prefix: ingress_http
+          route_config:
+            name: local_route
+            virtual_hosts:
+            - name: graphql_service
+              domains: ["*"]
+              routes:
+              - match:
+                  prefix: "/"
+                route:
+                  cluster: graphql_cluster
+          http_filters:
+          - name: envoy.filters.http.lua
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+              inline_code: |
+                -- First Lua script (modify request for OPA)
+                function envoy_on_request(request_handle)
+                  local headers = request_handle:headers()
+                  local body = request_handle:body():getBytes(0, request_handle:body():length())
+                  local cjson = require "cjson"
+                  local mime = require "mime"
+
+                  -- Parse the GraphQL query
+                  local gql_query = cjson.decode(body).query
+
+                  -- TODO: Implement actual GraphQL query parsing to extract fields
+                  -- For now, we'll assume the fields are ["field1"]
+                  local parsed_fields = {"field1"}
+
+                  -- Extract application name from headers
+                  local app_name = headers:get("Okra-Client-ID")
+
+                  -- Extract scopes (if applicable)
+                  local scopes = {"scope1", "scope2"}  -- Replace with actual extraction logic
+
+                  -- Construct the input payload
+                  local input_payload = {
+                    application = {
+                      name = app_name,
+                      resources = {
+                        {
+                          apiname = "testapi1",  -- Implement logic to determine API name
+                          fields = parsed_fields
+                        }
+                      },
+                      scopes = scopes
+                    }
+                  }
+
+                  -- Serialize the input payload to JSON
+                  local input_payload_json = cjson.encode(input_payload)
+
+                  -- Store the original body in a header (base64-encoded)
+                  headers:add("x-original-body", mime.b64(body))
+
+                  -- Replace the request body with the input payload for OPA
+                  request_handle:body():setBytes(input_payload_json)
+                end
+          - name: envoy.filters.http.ext_authz
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
+              transport_api_version: V3
+              grpc_service:
+                envoy_grpc:
+                  cluster_name: opa_cluster
+                timeout: 0.5s
+              include_body:
+                max_request_bytes: 8192
+                allow_partial_message: true
+          - name: envoy.filters.http.lua
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+              inline_code: |
+                -- Second Lua script (restore original body)
+                function envoy_on_request(request_handle)
+                  local headers = request_handle:headers()
+                  local mime = require "mime"
+
+                  local original_body_b64 = headers:get("x-original-body")
+                  if original_body_b64 then
+                    local original_body = mime.unb64(original_body_b64)
+                    request_handle:body():setBytes(original_body)
+                    headers:remove("x-original-body")
+                  end
+                end
+          - name: envoy.filters.http.router
+  clusters:
+  - name: graphql_cluster
+    connect_timeout: 0.25s
+    type: logical_dns
+    lb_policy: round_robin
+    load_assignment:
+      cluster_name: graphql_cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: graphql-service  # Kubernetes service name
+                port_value: 8080
+  - name: opa_cluster
+    connect_timeout: 0.25s
+    type: logical_dns
+    lb_policy: round_robin
+    http2_protocol_options: {}  # Required for gRPC
+    load_assignment:
+      cluster_name: opa_cluster
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: opa  # Kubernetes service name
+                port_value: 9191
